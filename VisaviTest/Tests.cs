@@ -1,6 +1,6 @@
-﻿using NUnit.Framework;
+﻿using Moq;
+using NUnit.Framework;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Visavi;
 
 namespace Tests
@@ -18,11 +18,25 @@ namespace Tests
         }
 
         [Test]
+        public void TestFormatString()
+        {
+            var parameters = new List<string>();
+            var mock = new VisaviTest.VisaSessionMock();
+            var responses = new Queue<string>(new string[] { "any string", "+0, No error" });
+            mock.FormattedIO.Setup(x => x.WriteLine(It.IsAny<string>())).Callback<string>(param => parameters.Add(param));
+
+            var session = new MessageSession(mock.Session);
+            session.Print(":SOUR1:TRAC:DATA {0}; :OUTP {1}; VALUE {2}", new double[] { 0.5, 0.1, 7 }, true, 5);
+            Assert.That(parameters, Is.EqualTo(new[] { ":SOUR1:TRAC:DATA 0.5,0.1,7; :OUTP 1; VALUE 5" }));
+            Assert.Pass();
+        }
+
+        [Test]
         public void TestQueryString()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "any string", "+0, No error" });
-            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
+            var responses = new Queue<string>(new string[] { "any string", "+0, No error" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
             var session = new MessageSession(mock.Session).WithErrorsCheck();
             var value = session.Query("DATA?");
@@ -35,8 +49,8 @@ namespace Tests
         public void TestQueryDouble()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "123.45", "+0, No error" });
-            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
+            var responses = new Queue<string>(new string[] { "123.45", "+0, No error" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
             var session = new MessageSession(mock.Session).WithErrorsCheck();
             double value = session.Query<double>("FREQ?");
@@ -50,8 +64,8 @@ namespace Tests
         public void TestQueryError()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "123.45", "+111, Error message" });
-            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
+            var responses = new Queue<string>(new string[] { "123.45", "+111, Error message" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
             var session = new MessageSession(mock.Session);
             var value = session.Query<double>("POW?");
@@ -66,8 +80,8 @@ namespace Tests
         public void TestQueryArrayGeneric()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "5.5,3.1,1.64", "+0, No error" });
-            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
+            var responses = new Queue<string>(new string[] { "5.5,3.1,1.64", "+0, No error" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
             var session = new MessageSession(mock.Session);
             var array = session.Query<double[]>("LIST?");
@@ -79,11 +93,11 @@ namespace Tests
         public void TestErrorException()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "5", "-666, Error message" });
-            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
+            var responses = new Queue<string>(new string[] { "-666, Error message" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
             var session = new MessageSession(mock.Session).WithErrorsCheck();
-            Assert.Catch<ScpiErrorException>(() => session.Query<double>("POW?"), "Error message");
+            Assert.Catch<ScpiErrorException>(() => session.Print("POW {0}", 10), "Error message");
 
             Assert.Pass();
         }
@@ -92,12 +106,14 @@ namespace Tests
         public void TestLog()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "5", "-666, Error message" });
-            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
-            mock.MessageBasedSession.Setup(x=>x.ResourceName).Returns("TCPIP::localhost::INSTR");
+            var responses = new Queue<string>(new string[] { "-666, Error message" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
+            mock.MessageBasedSession.Setup(x => x.ResourceName).Returns("TCPIP::localhost::INSTR");
 
-            var session = new MessageSession(mock.Session).WithErrorsCheck().Log(LogHandler);
-            Assert.Catch<ScpiErrorException>(() => session.Query<double>("POW?"), "Error message");
+            var session = new MessageSession(mock.Session).WithResourceName("ANALYZER").WithErrorsCheck().Log(LogHandler);
+            var exception = Assert.Catch<ScpiErrorException>(() => session.Print("FREQ {0}", 100), "Error message");
+            Assert.AreEqual("FREQ 100", exception.Context);
+            //Assert.AreEqual("ANALYZER", exception.ResourceName);
 
             Assert.Pass();
         }
