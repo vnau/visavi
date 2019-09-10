@@ -1,27 +1,27 @@
 ﻿using System;
 
-#region visacom
+#region VisaType
 #if VISACOM
 using Ivi.Visa.Interop;
-using IMessageInterface = Ivi.Visa.Interop.IMessage;
+using IMessageSession = Ivi.Visa.Interop.IMessage;
 #else
 using Ivi.Visa;
-using IMessageInterface = Ivi.Visa.IMessageBasedSession;
+using IMessageSession = Ivi.Visa.IMessageBasedSession;
 #endif
-#endregion
+#endregion VisaType
 
 namespace Visavi
 {
     public class MessageSession : MessageSessionContext
     {
-        public MessageSession(IMessageInterface messageInterface) : base()
+        public MessageSession(IMessageSession messageInterface) : base()
         {
             SetMessageInterface(messageInterface);
         }
 
         public MessageSession(IVisaSession session) : base()
         {
-            if (session is IMessageInterface messageInterface)
+            if (session is IMessageSession messageInterface)
             {
                 SetMessageInterface(messageInterface);
             }

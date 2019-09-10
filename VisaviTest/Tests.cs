@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Visavi;
 
 namespace Tests
@@ -52,7 +53,7 @@ namespace Tests
             var responces = new Queue<string>(new string[] { "123.45", "+111, Error message" });
             mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
 
-            var session = new MessageSession(mock.Session).WithErrorsCheck(false);
+            var session = new MessageSession(mock.Session);
             var value = session.Query<double>("POW?");
             var err = session.QueryError();
 
@@ -62,16 +63,15 @@ namespace Tests
         }
 
         [Test]
-        public void TestQueryArray()
+        public void TestQueryArrayGeneric()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responces = new Queue<string>(new string[] { "5,3,1", "+0, No error" });
+            var responces = new Queue<string>(new string[] { "5.5,3.1,1.64", "+0, No error" });
             mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
 
             var session = new MessageSession(mock.Session);
-            var array = session.QueryArray<double>("LIST?");
-
-            Assert.AreEqual(array, new double[] { 5, 3, 1 });
+            var array = session.Query<double[]>("LIST?");
+            Assert.AreEqual(array, new double[] { 5.5, 3.1, 1.64 });
             Assert.Pass();
         }
 
@@ -82,7 +82,21 @@ namespace Tests
             var responces = new Queue<string>(new string[] { "5", "-666, Error message" });
             mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
 
-            var session = new MessageSession(mock.Session);
+            var session = new MessageSession(mock.Session).WithErrorsCheck();
+            Assert.Catch<ScpiErrorException>(() => session.Query<double>("POW?"), "Error message");
+
+            Assert.Pass();
+        }
+
+        [Test]
+        public void TestLog()
+        {
+            var mock = new VisaviTest.VisaSessionMock();
+            var responces = new Queue<string>(new string[] { "5", "-666, Error message" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responces.Dequeue);
+            mock.MessageBasedSession.Setup(x=>x.ResourceName).Returns("TCPIP::localhost::INSTR");
+
+            var session = new MessageSession(mock.Session).WithErrorsCheck().Log(LogHandler);
             Assert.Catch<ScpiErrorException>(() => session.Query<double>("POW?"), "Error message");
 
             Assert.Pass();

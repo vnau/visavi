@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading;
 
-#region visacom
+#region VisaType
 #if VISACOM
 using Ivi.Visa.Interop;
-using IMessageInterface = Ivi.Visa.Interop.IMessage;
+using IMessageSession = Ivi.Visa.Interop.IMessage;
 #else
-using IMessageInterface = Ivi.Visa.IMessageBasedSession;
+using IMessageSession = Ivi.Visa.IMessageBasedSession;
 #endif
 #endregion
 
@@ -14,7 +14,7 @@ namespace Visavi
 {
     public class SessionLocker : IDisposable
     {
-        private IMessageInterface session;
+        private IMessageSession session;
         private bool lockResource;
 
         /// <summary>
@@ -22,7 +22,7 @@ namespace Visavi
         /// </summary>
         /// <param name="session">VISA session to lock</param>
         /// <param name="lockResource">Use VISA resource lock if true</param>
-        public SessionLocker(IMessageInterface session, bool lockResource = false)
+        public SessionLocker(IMessageSession session, bool lockResource = false)
         {
             this.session = session;
             this.lockResource = lockResource;

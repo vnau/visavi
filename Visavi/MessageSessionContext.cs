@@ -5,14 +5,14 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
-#region visacom
+#region VisaType
 #if VISACOM
 using Ivi.Visa.Interop;
-using IMessageInterface = Ivi.Visa.Interop.IMessage;
+using IMessageSession = Ivi.Visa.Interop.IMessage;
 #else
-using IMessageInterface = Ivi.Visa.IMessageBasedSession;
+using IMessageSession = Ivi.Visa.IMessageBasedSession;
 #endif
-#endregion
+#endregion VisaType
 
 
 namespace Visavi
@@ -26,17 +26,17 @@ namespace Visavi
 
     public class MessageSessionContext
     {
-        private string alias;
+        private string resourceName;
         private int? timeout;
         private MessageSessionContext baseContext;
         private bool checkScpiError;
         private bool ignoreWarnings;
         private Action<string, MessageType, string, string> action;
-        private IMessageInterface messageInterface;
+        private IMessageSession messageSession;
 
-        protected void SetMessageInterface(IMessageInterface messageInterface)
+        protected void SetMessageInterface(IMessageSession messageSession)
         {
-            this.messageInterface = messageInterface;
+            this.messageSession = messageSession;
         }
 
         /// <summary>
@@ -45,21 +45,21 @@ namespace Visavi
         protected MessageSessionContext()
         {
             timeout = 10000;
-            checkScpiError = true;
+            checkScpiError = false;
             ignoreWarnings = true;
         }
 
         protected MessageSessionContext(MessageSessionContext context)
         {
-            alias = context.alias;
+            resourceName = context.resourceName;
             timeout = context.timeout;
-            messageInterface = context.messageInterface;
+            messageSession = context.messageSession;
             baseContext = context;
             checkScpiError = context.checkScpiError;
             ignoreWarnings = context.ignoreWarnings;
         }
 
-        virtual public IMessageInterface Session => messageInterface;
+        virtual public IMessageSession Session => messageSession;
 
         public MessageSessionContext Log(Action<string, MessageType, string, string> action)
         {
@@ -71,12 +71,12 @@ namespace Visavi
         /// <summary>
         /// Set alias for message session
         /// </summary>
-        /// <param name="alias"></param>
+        /// <param name="resourceName"></param>
         /// <returns>Message session context</returns>
-        public MessageSessionContext WithAlias(string alias)
+        public MessageSessionContext WithResourceName(string resourceName)
         {
             var context = new MessageSessionContext(this);
-            context.alias = alias;
+            context.resourceName = resourceName;
             return context;
         }
 
@@ -108,10 +108,10 @@ namespace Visavi
         {
             using (ObtainLock())
             {
-                string formattedQuery = FormatString(format, args);
-                PrintNC(formattedQuery);
+                string query = FormatString(format, args);
+                PrintNC(query);
                 if (checkScpiError)
-                    ThrowExceptionOnError(formattedQuery);
+                    ThrowExceptionOnError(query);
             }
         }
 
@@ -128,17 +128,17 @@ namespace Visavi
         /// <summary>
         /// Query string
         /// </summary>
-        /// <param name="query"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        public string Query(string query, params object[] args)
+        public string Query(string format, params object[] args)
         {
             using (ObtainLock())
             {
-                string formattedQuery = FormatString(query, args);
-                var res = QueryNC<string>(formattedQuery);
+                string query = FormatString(format, args);
+                var res = QueryNC<string>(query);
                 if (checkScpiError)
-                    ThrowExceptionOnError(formattedQuery);
+                    ThrowExceptionOnError(query);
                 return res;
             }
         }
@@ -147,46 +147,34 @@ namespace Visavi
         /// Query specific type
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="query"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        public T Query<T>(string query, params object[] args)
+        public T Query<T>(string format, params object[] args)
         {
             using (ObtainLock())
             {
-                string formattedQuery = FormatString(query, args);
-                var res = QueryNC<T>(formattedQuery);
+                string query = FormatString(format, args);
+                var res = QueryNC<T>(query);
                 if (checkScpiError)
-                    ThrowExceptionOnError(formattedQuery);
-                return res;
-            }
-        }
-
-        public T[] QueryArray<T>(string query, params object[] args)
-        {
-            using (ObtainLock())
-            {
-                string formattedQuery = FormatString(query, args);
-                var res = QueryNCArray<T>(formattedQuery);
-                if (checkScpiError)
-                    ThrowExceptionOnError(formattedQuery);
+                    ThrowExceptionOnError(query);
                 return res;
             }
         }
 
         private void LogCommandReceived(string command)
         {
-            action?.Invoke(alias, MessageType.Receive, command, null);
+            action?.Invoke(resourceName, MessageType.Receive, command, null);
         }
 
         private void LogCommandSent(string command)
         {
-            action?.Invoke(alias, MessageType.Send, command, null);
+            action?.Invoke(resourceName, MessageType.Send, command, null);
         }
 
         private void LogWarning(string message, string context)
         {
-            action?.Invoke(alias, MessageType.Warning, message, context);
+            action?.Invoke(resourceName, MessageType.Warning, message, context);
         }
 
 
@@ -194,13 +182,13 @@ namespace Visavi
         {
             using (ObtainLock())
             {
-                string formattedQuery = FormatString(format, args);
-                LogCommandSent(formattedQuery);
+                string query = FormatString(format, args);
+                LogCommandSent(query);
 
 #if VISACOM
                 session.WriteString(formatted);
 #else
-                Session.FormattedIO.WriteLine(formattedQuery);
+                Session.FormattedIO.WriteLine(query);
 #endif
             }
         }
@@ -230,12 +218,12 @@ namespace Visavi
         /// <summary>
         /// Format string with invariant culture (decimal separator is dot)
         /// </summary>
-        /// <param name="query"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         /// <returns>formatted string</returns>
-        private static string FormatString(string query, params object[] args)
+        private static string FormatString(string format, params object[] args)
         {
-            return string.Format(CultureInfo.InvariantCulture, query, args);
+            return string.Format(CultureInfo.InvariantCulture, format, args);
         }
 
 
@@ -299,7 +287,7 @@ namespace Visavi
                     if (error.Code != 0)
                     {
                         var exception = new ScpiErrorException(error.Code, error.Message);
-                        exception.Data["Instrument"] = alias;
+                        exception.Data["Instrument"] = resourceName;
                         if (!string.IsNullOrEmpty(context))
                             exception.Data["Context"] = context;
                         return exception;
@@ -323,61 +311,66 @@ namespace Visavi
         /// Query value of the specified type
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="query"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        private T QueryNC<T>(string query, params object[] args)
+        private T QueryNC<T>(string format, params object[] args)
         {
             using (ObtainLock())
             {
-                var formattedQuery = FormatString(query, args);
-                PrintNC(query, args);
-                T res;
-                try
+                if (typeof(T).IsArray)
                 {
-                    res = ReadNC<T>();
+                    Type elementType = typeof(T).GetElementType();
+                    string query = FormatString(format, args);
+                    TypeConverter typeConverter = TypeDescriptor.GetConverter(elementType);
+                    var res1 = QueryNC<string>(query).Trim(new[] { '\r', '\n', '"', ' ' }).Split(',');
+                    Array array;
+                    // Workaround for Keysight returning EMPTY strings if there is no items in list
+                    if (res1.Length == 1 && res1.First() == "EMPTY")
+                        array = Array.CreateInstance(elementType, 0);
+                    else
+                    {
+                        array = Array.CreateInstance(elementType, res1.Length);
+
+                        for (int i = 0; i < res1.Length; i++)
+                            array.SetValue(typeConverter.ConvertFromString(null, CultureInfo.InvariantCulture, res1[i]), i);
+                    }
+
+                    return (T)(object)array;
                 }
-                catch (Exception e)
+                else
                 {
-                    e.Data["Context"] = formattedQuery;
-                    throw e;
+                    var query = FormatString(format, args);
+                    PrintNC(format, args);
+                    T res;
+                    try
+                    {
+                        res = ReadNC<T>();
+                    }
+                    catch (Exception e)
+                    {
+                        e.Data["Context"] = query;
+                        throw e;
+                    }
+                    return res;
                 }
-                return res;
             }
         }
 
-        private T[] QueryNCArray<T>(string query, params object[] args)
-        {
-            using (ObtainLock())
-            {
-                string formattedQuery = FormatString(query, args);
-                TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
-                var res1 = QueryNC<string>(formattedQuery).Trim(new[] { '\r', '\n', '"', ' ' }).Split(',');
-                // Workaround for Keysight returning EMPTY strings if there no items in list
-                if (res1.Length == 1 && res1.First() == "EMPTY")
-                    return new T[] { };
-                var result = res1.Select(value =>
-                (T)typeConverter.ConvertFromString(null, CultureInfo.InvariantCulture, value)
-                ).ToArray();
-
-                return result;
-            }
-        }
-
-        private async Task<T> QueryNCAsync<T>(int? timeout, string query, params object[] args)
+        private async Task<T> QueryNCAsync<T>(int? timeout, string format, params object[] args)
         {
             using (ObtainLock())
             {
                 T res;
-                var formattedQuery = FormatString(query, args);
-                PrintNC(formattedQuery);
+                var query = FormatString(format, args);
+                PrintNC(query);
                 try
                 {
                     res = await ReadNCAsync<T>(timeout);
                 }
                 catch (Exception e)
                 {
-                    e.Data["Context"] = formattedQuery;
+                    e.Data["Context"] = query;
                     throw e;
                 }
                 return res;
@@ -389,15 +382,15 @@ namespace Visavi
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="timeout"></param>
-        /// <param name="query"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        public async Task<T> QueryAsync<T>(int? timeout, string query, params object[] args)
+        public async Task<T> QueryAsync<T>(int? timeout, string format, params object[] args)
         {
             using (ObtainLock())
             {
-                var formattedQuery = FormatString(query, args);
-                PrintNC(formattedQuery);
+                var query = FormatString(format, args);
+                PrintNC(query);
                 T res;
                 try
                 {
@@ -405,55 +398,13 @@ namespace Visavi
                 }
                 catch (Exception e)
                 {
-                    e.Data["Context"] = formattedQuery;
+                    e.Data["Context"] = query;
                     throw e;
                 }
                 return res;
             }
         }
 
-        /// <summary>
-        /// Asyncronous array query
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="timeout"></param>
-        /// <param name="query"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        private async Task<T[]> QueryNCArrayAsync<T>(int? timeout, string query, params object[] args)
-        {
-            using (ObtainLock())
-            {
-                string formattedQuery = FormatString(query, args);
-                TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
-                var resp = await QueryNCAsync<string>(timeout, formattedQuery);
-                var res1 = resp.Trim(new[] { '\r', '\n', '"', ' ' }).Split(',');
-                var result = res1.Select(value =>
-                (T)typeConverter.ConvertFromString(null, CultureInfo.InvariantCulture, value)
-                ).ToArray();
-
-                return result;
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="timeout"></param>
-        /// <param name="query"></param>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        private async Task<T[]> QueryArrayAsync<T>(int? timeout, string query, params object[] args)
-        {
-            using (ObtainLock())
-            {
-                string formattedQuery = FormatString(query, args);
-                var result = await QueryNCArrayAsync<T>(timeout, formattedQuery);
-                ThrowExceptionOnError(formattedQuery);
-                return result;
-            }
-        }
 
         #endregion // Query
 
