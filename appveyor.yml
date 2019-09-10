@@ -10,5 +10,5 @@ build:
   verbosity: minimal
 
 test_script:
-- OpenCover.Console.exe -register:user -target:"%nunit3%\nunit3-console.exe" -targetargs:".\VisaviTest\bin\Debug\VisaviTest.dll -noshadow" -filter:"+[Visavi*]* -[VisaviTest*]*" -output:".\visavi_coverage.xml"
+- OpenCover.Console.exe -register:user -target:"%nunit37%\nunit3-console.exe" -targetargs:".\VisaviTest\bin\Debug\VisaviTest.dll -noshadow" -filter:"+[Visavi*]* -[VisaviTest*]*" -output:".\visavi_coverage.xml"
 - codecov -f "visavi_coverage.xml"
