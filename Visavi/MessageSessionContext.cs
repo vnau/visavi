@@ -223,7 +223,7 @@ namespace Visavi
         /// <returns>formatted string</returns>
         private static string FormatString(string format, params object[] args)
         {
-            return string.Format(CultureInfo.InvariantCulture, format, args);
+            return string.Format(new ScpiFormatProvider(), format, args);
         }
 
 
@@ -457,29 +457,29 @@ namespace Visavi
                             //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
                             Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
                             task.SetException(ex);
-                            //task.SetCanceled();
-                        }
-                        else
-                        {
-                            string str = System.Text.Encoding.Default.GetString(res.Buffer, 0, (int)res.Count);
+                             //task.SetCanceled();
+                         }
+                         else
+                         {
+                             string str = System.Text.Encoding.Default.GetString(res.Buffer, 0, (int)res.Count);
 
-                            TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
-                            LogCommandReceived(str);
-                            task.SetResult(ConvertFromString<T>(str));
-                        }
-                    }
-                    else
-                    {
-                        var Exception = new OperationCanceledException(string.Format("Asynchronous operation {0} not completed.", nameof(ReadNCAsync)));
-                        task.SetException(Exception);
-                    }
-                    Session.RawIO.EndRead(res);
-                    // Restore timeout
-                    if (timeout != null)
-                    {
-                        Session.TimeoutMilliseconds = DefaultTimeout;
-                    }
-                }, null);
+                             TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
+                             LogCommandReceived(str);
+                             task.SetResult(ConvertFromString<T>(str));
+                         }
+                     }
+                     else
+                     {
+                         var Exception = new OperationCanceledException(string.Format("Asynchronous operation {0} not completed.", nameof(ReadNCAsync)));
+                         task.SetException(Exception);
+                     }
+                     Session.RawIO.EndRead(res);
+                     // Restore timeout
+                     if (timeout != null)
+                     {
+                         Session.TimeoutMilliseconds = DefaultTimeout;
+                     }
+                 }, null);
                 return task.Task;
 #endif
             }
