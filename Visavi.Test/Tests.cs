@@ -12,11 +12,6 @@ namespace Tests
         {
         }
 
-        public void LogHandler(string alias, MessageType type, string message, string context)
-        {
-
-        }
-
         [Test]
         public void TestFormatString()
         {
@@ -80,7 +75,7 @@ namespace Tests
         public void TestQueryArrayGeneric()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responses = new Queue<string>(new string[] { "5.5,3.1,1.64", "+0, No error" });
+            var responses = new Queue<string>(new string[] { "5.5,3.1, 1.64", "+0, No error" });
             mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
             var session = new MessageSession(mock.Session);
@@ -93,27 +88,39 @@ namespace Tests
         public void TestErrorException()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responses = new Queue<string>(new string[] { "-666, Error message" });
+            var responses = new Queue<string>(new string[] { "-321, Error message" });
             mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
 
-            var session = new MessageSession(mock.Session).WithErrorsCheck();
-            Assert.Catch<ScpiErrorException>(() => session.Print("POW {0}", 10), "Error message");
+            var session = new MessageSession(mock.Session).WithResourceName("ANALYZER").WithErrorsCheck();
+            var exception = Assert.Catch<ScpiErrorException>(() => session.Print("POW {0}", 10), "Error message");
+            Assert.AreEqual(-321, exception.HResult);
+            Assert.AreEqual("POW 10", exception.Context);
+            Assert.AreEqual("ANALYZER", exception.ResourceName);
+            var stackTrace = exception.StackTrace;
+            Assert.IsNotNull(stackTrace);
+            Assert.IsTrue(stackTrace.Contains(nameof(TestErrorException)));
+            Assert.IsFalse(stackTrace.Contains(nameof(MessageSessionContext)));
 
             Assert.Pass();
+        }
+
+        public void LogHandler(string alias, MessageType type, string message, string context)
+        {
+
         }
 
         [Test]
         public void TestLog()
         {
             var mock = new VisaviTest.VisaSessionMock();
-            var responses = new Queue<string>(new string[] { "-666, Error message" });
+            var responses = new Queue<string>(new string[] { "-123, Error message" });
             mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
-            mock.MessageBasedSession.Setup(x => x.ResourceName).Returns("TCPIP::localhost::INSTR");
+            mock.MessageBasedSession.Setup(x => x.ResourceName).Returns("TCPIP::instrument::INSTR");
 
-            var session = new MessageSession(mock.Session).WithResourceName("ANALYZER").WithErrorsCheck().Log(LogHandler);
+            var session = new MessageSession(mock.Session).WithErrorsCheck().Log(LogHandler);
             var exception = Assert.Catch<ScpiErrorException>(() => session.Print("FREQ {0}", 100), "Error message");
+            Assert.AreEqual(-123, exception.HResult);
             Assert.AreEqual("FREQ 100", exception.Context);
-            //Assert.AreEqual("ANALYZER", exception.ResourceName);
 
             Assert.Pass();
         }
