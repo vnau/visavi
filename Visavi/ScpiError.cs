@@ -30,16 +30,16 @@ namespace Visavi
         /// <summary>
         /// Instrument alias
         /// </summary>
-        public string Alias { get; }
+        public string ResourceName { get; }
 
         /// <summary>
         /// Create ScpiError from plain error message
         /// </summary>
         /// <param name="text"></param>
-        public ScpiError(string text, string alias = "", string context = "")
+        public ScpiError(string text, string resourceName = "", string context = "")
         {
             Plain = text;
-            Alias = alias;
+            ResourceName = resourceName;
             Context = context;
             var d = text.Split(',');
             Code = int.Parse(d[0], CultureInfo.InvariantCulture);
@@ -56,7 +56,7 @@ namespace Visavi
         /// <param name="message"></param>
         public ScpiError(int code, string message, string alias = "", string context = "")
         {
-            Alias = alias;
+            ResourceName = alias;
             Context = context;
             Plain = string.Format("{0}, \"{1}\"", code, message);
         }

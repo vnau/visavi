@@ -28,8 +28,14 @@ namespace Visavi
         /// </summary>
         /// <param name="message"></param>
         /// <param name="code"></param>
-        public ScpiErrorException(int code, string message) : base(message)
+        public ScpiErrorException(int code, string message, string resourceName = null, string context = null) : base(message)
         {
+            if (!string.IsNullOrEmpty(resourceName))
+                Data["ResourceName"] = resourceName;
+
+            if (!string.IsNullOrEmpty(context))
+                Data["Context"] = context;
+
             this.HResult = code;
         }
 
@@ -43,7 +49,7 @@ namespace Visavi
                 // remove ScpiExtensions from stack trace
                 var stackTrace = new List<string>();
                 stackTrace.AddRange(base.StackTrace.Split(new[] { Environment.NewLine }, StringSplitOptions.None));
-                //stackTrace.RemoveAll(x => x.Contains(typeof(ScpiExtensions).Name));
+                stackTrace.RemoveAll(x => x.Contains(typeof(MessageSessionContext).Name));
                 return string.Join(Environment.NewLine, stackTrace.ToArray());
             }
         }

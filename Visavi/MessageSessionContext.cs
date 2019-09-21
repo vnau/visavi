@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -202,19 +201,6 @@ namespace Visavi
             return new SessionLocker(Session);
         }
 
-
-        /// <summary>
-        /// Format SCPI array
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        public static string FormatArray<T>(IEnumerable<T> values) where T : IFormattable
-        {
-            return string.Join(",", values.Select(v => v.ToString(null, CultureInfo.InvariantCulture)));
-        }
-
-
         /// <summary>
         /// Format string with invariant culture (decimal separator is dot)
         /// </summary>
@@ -246,8 +232,8 @@ namespace Visavi
             {
                 if (exception.HResult > 0) // warnings
                 {
-                    var instrument = exception.Data["Instrument"];
-                    var context = exception.Data["Context"] as string;
+                    var instrument = exception.ResourceName;
+                    var context = exception.Context;
                     LogWarning(exception.Message, context);
                 }
 
@@ -286,13 +272,9 @@ namespace Visavi
                     var error = QueryError();
                     if (error.Code != 0)
                     {
-                        var exception = new ScpiErrorException(error.Code, error.Message);
-                        exception.Data["Instrument"] = resourceName;
-                        if (!string.IsNullOrEmpty(context))
-                            exception.Data["Context"] = context;
-                        return exception;
+                        return new ScpiErrorException(error.Code, error.Message, resourceName, context);
                     }
-                    return new ScpiErrorException(0, "No error");
+                    return new ScpiErrorException(0, "No error", resourceName, context);
                 }
             }
         }
@@ -449,14 +431,14 @@ namespace Visavi
                 var task = new TaskCompletionSource<T>();
 
                 Session.RawIO.BeginRead(1000, res =>
-                {
-                    if (res.IsCompleted)
-                    {
-                        if (res.Count == 0)
-                        {
-                            //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
-                            Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
-                            task.SetException(ex);
+                 {
+                     if (res.IsCompleted)
+                     {
+                         if (res.Count == 0)
+                         {
+                             //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
+                             Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
+                             task.SetException(ex);
                              //task.SetCanceled();
                          }
                          else

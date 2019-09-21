@@ -14,11 +14,6 @@ namespace Visavi
 {
     public class MessageSession : MessageSessionContext
     {
-        public MessageSession(IMessageSession messageInterface) : base()
-        {
-            SetMessageInterface(messageInterface);
-        }
-
         public MessageSession(IVisaSession session) : base()
         {
             if (session is IMessageSession messageInterface)
@@ -27,7 +22,7 @@ namespace Visavi
             }
             else
             {
-                throw new Exception("provided session is not IMessageInterface");
+                throw new ArgumentException("provided session is not IMessageInterface", nameof(messageInterface));
             }
         }
 
