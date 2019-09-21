@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.28307.572
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Visavi", "Visavi\Visavi.csproj", "{D1940145-0A56-49A1-AEFE-FB0A3FE10A4C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisaviTest", "VisaviTest\VisaviTest.csproj", "{C1782E74-6A21-4DB3-8E88-833F10480642}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Visavi.Test", "Visavi.Test\Visavi.Test.csproj", "{C1782E74-6A21-4DB3-8E88-833F10480642}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D1940145-0A56-49A1-AEFE-FB0A3FE10A4C} = {D1940145-0A56-49A1-AEFE-FB0A3FE10A4C}
 	EndProjectSection
