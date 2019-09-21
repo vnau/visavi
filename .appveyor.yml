@@ -16,8 +16,8 @@ test_script:
         nuget install OpenCover -Version 4.7.922 -OutputDirectory packages
         nuget install coveralls.net -Version 0.7.0 -OutputDirectory packages
         nuget install NUnit.Runners -Version 3.10.0 -OutputDirectory packages
-        $testDir = ".\VisaviTest\bin\Debug"
-        $tests = @("$testDir\VisaviTest.dll")
+        $testDir = ".\Visavi.Test\bin\Debug"
+        $tests = @("$testDir\Visavi.Test.dll")
         $testsPassed = $true
         foreach ($elem in $tests) {
             $testResultsFile = "$elem" + ".xml"
@@ -25,7 +25,7 @@ test_script:
             -register `
             -target:.\packages\NUnit.ConsoleRunner.3.10.0\tools\nunit3-console.exe `
             "-targetargs:""$elem"" /where:cat!=BulkData /result:""$testResultsFile""" `
-            "-filter:+[Visavi]* -[VisaviTest]*" `
+            "-filter:+[Visavi]* -[Visavi.Test]* -[Visavi.Examples]*" `
             -output:opencover.xml `
             -returntargetcode `
             # Keep track of test failures so that we can throw an exception after
@@ -50,7 +50,7 @@ test_script:
             --commitEmail "$commitEmail" `
             --commitMessage "$commitMessage" `
             --useRelativePaths `
-            --basePath .\VisaviTest\bin\Debug
+            --basePath .\Visavi.Test\bin\Debug
         }
         if (!$testsPassed) {
             throw "Tests failed."
