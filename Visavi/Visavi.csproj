@@ -53,6 +53,7 @@
     <Compile Include="ScpiError.cs" />
     <Compile Include="ScpiErrorException.cs" />
     <Compile Include="ScpiFormatProvider.cs" />
+    <Compile Include="ScpiResponseConverter.cs" />
     <Compile Include="SessionLocker.cs" />
   </ItemGroup>
   <ItemGroup>

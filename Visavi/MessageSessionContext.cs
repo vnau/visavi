@@ -212,14 +212,6 @@ namespace Visavi
             return string.Format(new ScpiFormatProvider(), format, args);
         }
 
-
-        private static T ConvertFromString<T>(string str)
-        {
-            TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
-            return (T)typeConverter.ConvertFromString(null, CultureInfo.InvariantCulture, str);
-        }
-
-
         /// <summary>
         /// 
         /// </summary>
@@ -300,41 +292,20 @@ namespace Visavi
         {
             using (ObtainLock())
             {
-                if (typeof(T).IsArray)
+                var query = FormatString(format, args);
+                PrintNC(format, args);
+                try
                 {
-                    Type elementType = typeof(T).GetElementType();
-                    string query = FormatString(format, args);
-                    TypeConverter typeConverter = TypeDescriptor.GetConverter(elementType);
-                    var res1 = QueryNC<string>(query).Trim(new[] { '\r', '\n', '"', ' ' }).Split(',');
-                    Array array;
-                    // Workaround for Keysight returning EMPTY strings if there is no items in list
-                    if (res1.Length == 1 && res1.First() == "EMPTY")
-                        array = Array.CreateInstance(elementType, 0);
-                    else
-                    {
-                        array = Array.CreateInstance(elementType, res1.Length);
-
-                        for (int i = 0; i < res1.Length; i++)
-                            array.SetValue(typeConverter.ConvertFromString(null, CultureInfo.InvariantCulture, res1[i]), i);
-                    }
-
-                    return (T)(object)array;
+                    return ReadNC<T>();
                 }
-                else
+                catch (ScpiErrorException)
                 {
-                    var query = FormatString(format, args);
-                    PrintNC(format, args);
-                    T res;
-                    try
-                    {
-                        res = ReadNC<T>();
-                    }
-                    catch (Exception e)
-                    {
-                        e.Data["Context"] = query;
-                        throw e;
-                    }
-                    return res;
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    e.Data["Context"] = query;
+                    throw e;
                 }
             }
         }
@@ -399,12 +370,12 @@ namespace Visavi
             {
 #if VISACOM
             
-            string result = session.ReadString(65546);
+            string response = session.ReadString(65546);
 #else
-                string result = Session.FormattedIO.ReadLine();
+                string response = Session.FormattedIO.ReadLine();
 #endif
-                LogCommandReceived(result);
-                return ConvertFromString<T>(result);
+                LogCommandReceived(response);
+                return ScpiResponseConverter.ConvertFromString<T>(response);
             }
         }
 
@@ -429,7 +400,6 @@ namespace Visavi
             return Task.FromResult(ReadNC<T>(session));
 #else
                 var task = new TaskCompletionSource<T>();
-
                 Session.RawIO.BeginRead(1000, res =>
                  {
                      if (res.IsCompleted)
@@ -447,7 +417,7 @@ namespace Visavi
 
                              TypeConverter typeConverter = TypeDescriptor.GetConverter(typeof(T));
                              LogCommandReceived(str);
-                             task.SetResult(ConvertFromString<T>(str));
+                             task.SetResult(ScpiResponseConverter.ConvertFromString<T>(str));
                          }
                      }
                      else
