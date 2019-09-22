@@ -85,6 +85,20 @@ namespace Tests
         }
 
         [Test]
+        public void TestPrintReadArrayGeneric()
+        {
+            var mock = new VisaviTest.VisaSessionMock();
+            var responses = new Queue<string>(new string[] { "5.5,3.1, 1.64", "+0, No error" });
+            mock.FormattedIO.Setup(x => x.ReadLine()).Returns(responses.Dequeue);
+
+            var session = new MessageSession(mock.Session);
+            session.Print("LIST?");
+            var array = session.Read<double[]>();
+            Assert.AreEqual(array, new double[] { 5.5, 3.1, 1.64 });
+            Assert.Pass();
+        }
+
+        [Test]
         public void TestErrorException()
         {
             var mock = new VisaviTest.VisaSessionMock();
