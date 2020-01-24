@@ -1,7 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Globalization;
-using System.Linq;
 using System.Threading.Tasks;
 
 #region VisaType
@@ -23,7 +21,7 @@ namespace Visavi
         Warning
     }
 
-    public class MessageSessionContext
+    public class MessageSessionContext : IMessageSessionContext
     {
         private string resourceName;
         private int? timeout;
@@ -60,7 +58,7 @@ namespace Visavi
 
         virtual public IMessageSession Session => messageSession;
 
-        public MessageSessionContext Log(Action<string, MessageType, string, string> action)
+        public IMessageSessionContext Log(Action<string, MessageType, string, string> action)
         {
             var context = new MessageSessionContext(this);
             context.action += action;
@@ -72,7 +70,7 @@ namespace Visavi
         /// </summary>
         /// <param name="resourceName"></param>
         /// <returns>Message session context</returns>
-        public MessageSessionContext WithResourceName(string resourceName)
+        public IMessageSessionContext WithResourceName(string resourceName)
         {
             var context = new MessageSessionContext(this);
             context.resourceName = resourceName;
@@ -84,7 +82,7 @@ namespace Visavi
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public MessageSessionContext WithTimeout(int timeout)
+        public IMessageSessionContext WithTimeout(int timeout)
         {
             var context = new MessageSessionContext(this);
             context.timeout = timeout;
@@ -96,7 +94,7 @@ namespace Visavi
         /// </summary>
         /// <param name="enable"></param>
         /// <returns></returns>
-        public MessageSessionContext WithErrorsCheck(bool enable = true)
+        public IMessageSessionContext WithErrorsCheck(bool enable = true)
         {
             var context = new MessageSessionContext(this);
             context.checkScpiError = enable;
@@ -406,11 +404,11 @@ namespace Visavi
                      {
                          if (res.Count == 0)
                          {
-                             //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
-                             Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
+                         //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
+                         Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
                              task.SetException(ex);
-                             //task.SetCanceled();
-                         }
+                         //task.SetCanceled();
+                     }
                          else
                          {
                              string str = System.Text.Encoding.Default.GetString(res.Buffer, 0, (int)res.Count);
@@ -426,8 +424,8 @@ namespace Visavi
                          task.SetException(Exception);
                      }
                      Session.RawIO.EndRead(res);
-                     // Restore timeout
-                     if (timeout != null)
+                 // Restore timeout
+                 if (timeout != null)
                      {
                          Session.TimeoutMilliseconds = DefaultTimeout;
                      }

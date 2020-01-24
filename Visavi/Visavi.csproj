@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IMessageSessionContext.cs" />
     <Compile Include="MessageSession.cs" />
     <Compile Include="MessageSessionContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
