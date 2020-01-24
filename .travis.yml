@@ -5,4 +5,4 @@ mono:
 install:
   - nuget restore ./Visavi.sln
 script:
-  - xbuild ./Visavi.sln
+  - xbuild /p:Configuration=DebugLib ./Visavi.sln
