@@ -372,6 +372,9 @@ namespace Visavi
 #else
                 string response = Session.FormattedIO.ReadLine();
 #endif
+                // remove trailing termination character if enabled
+                if (Session.TerminationCharacterEnabled && !string.IsNullOrEmpty(response) && response[response.Length - 1] == Session.TerminationCharacter)
+                    response = response.Substring(0, response.Length - 1);
                 LogCommandReceived(response);
                 return ScpiResponseConverter.ConvertFromString<T>(response);
             }
@@ -404,11 +407,11 @@ namespace Visavi
                      {
                          if (res.Count == 0)
                          {
-                         //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
-                         Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
+                             //throw new Exception(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
+                             Exception ex = new TimeoutException(string.Format("Asynchronous operation {0} timed out.", nameof(ReadNCAsync)));
                              task.SetException(ex);
-                         //task.SetCanceled();
-                     }
+                             //task.SetCanceled();
+                         }
                          else
                          {
                              string str = System.Text.Encoding.Default.GetString(res.Buffer, 0, (int)res.Count);
@@ -424,8 +427,8 @@ namespace Visavi
                          task.SetException(Exception);
                      }
                      Session.RawIO.EndRead(res);
-                 // Restore timeout
-                 if (timeout != null)
+                     // Restore timeout
+                     if (timeout != null)
                      {
                          Session.TimeoutMilliseconds = DefaultTimeout;
                      }
